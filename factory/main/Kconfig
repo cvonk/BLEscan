@@ -4,7 +4,7 @@ menu "BLEscan"
         string "Firmware upgrade url endpoint"
         default "http://coertvonk.com/cvonk/blescan/scanner.bin"
         help
-            URL of server which hosts the firmware image. (make sure it matches Kconfig in scanner dir)
+            URL of server which hosts the firmware image. (make sure it matches Kconfig in scannerp dir)
 
     config OTA_UPDATE_RECV_TIMEOUT
         int "OTA Update receive Timeout"

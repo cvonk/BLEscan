@@ -76,6 +76,7 @@ Specify the same "Firmware upgrade url endpoint" using menuconfig.
 cd BLEscan/factory
 idf.py set-target esp32
 idf.py menuconfig
+idf.py erase-flash
 idf.py flash
 idf.py monitor
 ```
@@ -132,33 +133,23 @@ To switch modes, sent a control message with the new mode to:
 
 Here `DEVNAME` is either a programmed device name, such as `esp32-1`, or `esp32_XXXX` where the `XXXX` are the last digits of the MAC address. Device names are assigned based on the BLE MAC address in `main/ble_task.c`.
 
-
-| `mosquitto_pub -t "blescan/ctrl" -m SEE_BELOW |   mosquitto_sub -t "blescan/data/#" -v | 
+| `mosquitto_pub -t "blescan/ctrl" -m SEE_BELOW` |  `mosquitto_sub -t "blescan/data/#"` | 
 |----------------|-----------------------|
-| `mode`         | `{ "response": { "mode": "adv", "interval": 40 } }`
-| `scan`         | `{ "response": { "mode": "scan", "interval": 40 } }`
-| `int 100`      | `{ "response": { "mode": "scan", "interval": 100 } }`
-| `adv`          | `{ "response": { "mode": "adv", "interval": 100 } }`
-| `idle`          | `{ "response": { "mode": "adv", "interval": 100 } }`
-
-
-For example
-```
-mosquitto_pub -t "blescan/ctrl" -m "mode"
-```
-replies with
-```
-
-```
-
+| `mode`         | `{ "response": { "mode": "ADV", "interval": 40 } }`
+| `scan`         | `{ "response": { "mode": "SCAN", "interval": 40 } }`
+| `int 100`      | `{ "response": { "mode": "SCAN", "interval": 100 } }`
+| `adv`          | `{ "response": { "mode": "ADV", "interval": 100 } }`
+| `idle`         | `{ "response": { "mode": "IDLE", "interval": 100 } }`
 
 ### Other controls
 
 Other control messages are:
 - `who`, can be used for device discovery when sent to the group topic
 - `restart`, to restart the ESP32 (and check for OTA updates)
-- `int N`, to change scan/adv interval to N milliseconds
+- `int N`, to change scan/adv interval to N milliseconds (40 .. 1000 msec)
 - `mode`, to report the current scan/adv mode and interval
+
+### Multiple devices
 
 Messages can be sent to a specific device, or the whole group:
 ```
@@ -166,9 +157,43 @@ mosquitto_pub -t "blescan/ctrl/esp-1" -m "who"
 mosquitto_pub -t "blescan/ctrl" -m "who"
 ```
 
-results in
+### Example
+
+In one terminal listen for the reponses
+
+```bash
+mosquitto_sub -t "blescan/data/#" -v
 ```
-blescan/data/who/esp32-1 { "ble": {"name": "esp32-1", "address": "30:ae:a4:cc:24:6a"}, "firmware": { "version": "scanner.75b5b4e-dirty", "date": "Apr 28 2022 10:42:31" }, "wifi": { "connect": 1, "address": "10.1.1.120", "SSID": "Guest Barn", "RSSI": -59 }, "mqtt": { "connect": 1 }, "mem": { "heap": 107832 } }
+
+In another terminal sent the commands.  First put all devices in advertizing mode, then put one device in scanning mode.
+
+```
+mosquitto_pub -t "blescan/ctrl" -m adv
+mosquitto_pub -t "blescan/ctrl/esp32-2" -m scan
+```
+
+The first terminal will show the scan results
+```
+blescan/data/mode/esp32-3 { "response": { "mode": "ADV", "interval": 40 } }
+blescan/data/mode/esp32-2 { "response": { "mode": "ADV", "interval": 40 } }
+blescan/data/mode/esp32-4 { "response": { "mode": "ADV", "interval": 40 } }
+blescan/data/mode/esp32-1 { "response": { "mode": "ADV", "interval": 40 } }
+blescan/data/mode/esp32-1 { "response": { "mode": "SCAN", "interval": 40 } }
+blescan/data/scan/esp32-1 { "name": "esp32-3", "address": "ac:67:b2:53:82:8a", "txPwr": -59, "RSSI": -40 }
+blescan/data/scan/esp32-1 { "name": "esp32-4", "address": "ac:67:b2:53:7f:22", "txPwr": -59, "RSSI": -38 }
+blescan/data/scan/esp32-1 { "name": "esp32-2", "address": "30:ae:a4:cc:32:4e", "txPwr": -59, "RSSI": -37 }
+blescan/data/scan/esp32-1 { "name": "esp32-2", "address": "30:ae:a4:cc:32:4e", "txPwr": -59, "RSSI": -39 }
+blescan/data/scan/esp32-1 { "name": "esp32-3", "address": "ac:67:b2:53:82:8a", "txPwr": -59, "RSSI": -39 }
+blescan/data/scan/esp32-1 { "name": "esp32-3", "address": "ac:67:b2:53:82:8a", "txPwr": -59, "RSSI": -38 }
+blescan/data/scan/esp32-1 { "name": "esp32-4", "address": "ac:67:b2:53:7f:22", "txPwr": -59, "RSSI": -37 }
+blescan/data/scan/esp32-1 { "name": "esp32-3", "address": "ac:67:b2:53:82:8a", "txPwr": -59, "RSSI": -36 }
+blescan/data/scan/esp32-1 { "name": "esp32-4", "address": "ac:67:b2:53:7f:22", "txPwr": -59, "RSSI": -37 }
+blescan/data/scan/esp32-1 { "name": "esp32-2", "address": "30:ae:a4:cc:32:4e", "txPwr": -59, "RSSI": -40 }
+blescan/data/scan/esp32-1 { "name": "esp32-2", "address": "30:ae:a4:cc:32:4e", "txPwr": -59, "RSSI": -37 }
+blescan/data/scan/esp32-1 { "name": "esp32-3", "address": "ac:67:b2:53:82:8a", "txPwr": -59, "RSSI": -36 }
+blescan/data/scan/esp32-1 { "name": "esp32-4", "address": "ac:67:b2:53:7f:22", "txPwr": -59, "RSSI": -37 }
+blescan/data/scan/esp32-1 { "name": "esp32-2", "address": "30:ae:a4:cc:32:4e", "txPwr": -59, "RSSI": -39 }
+blescan/data/scan/esp32-1 { "name": "esp32-4", "address": "ac:67:b2:53:7f:22", "txPwr": -59, "RSSI": -38 }
 ```
 
 ## Feedback
