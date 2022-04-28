@@ -49,7 +49,7 @@ cp scanner/Kconfig.example scanner/Kconfig
 cp factory/Kconfig.example factory/Kconfig
 ```
 
-### System Development Kit (SDK)
+### ESP-IDF 
 
 If you haven't installed ESP-IDF, I recommend the Microsoft Visual Studio Code IDE (vscode). From vscode, add the [Microsoft's C/C++ extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools). Then add the [Espressif IDF extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension) and follow its configuration to install ESP-IDF 4.4.
 
@@ -66,6 +66,25 @@ idf.py flash
 
 ## Using the application
 
+Both replies to control messages and scan results are reported using MQTT topic `blescan/data/SUBTOPIC/DEVNAME`.
+
+Subtopics are:
+- `scan`, BLE scan results,
+- `mode`, response to `mode` and `int` control messages,
+- `who`, response to `who` control messages,
+- `restart`, response to `restart` control messages,
+- `dbg`, general debug messages
+
+> The easiest way for running the Mosquitto MQTT client under Microsoft Windows is by using Windows Subsystem for Linux.
+
+E.g. to listen to all scan results, use:
+```
+mosquitto_sub -t "blescan/data/scan/#" -v
+```
+where `#` is a the MQTT wildcard character.
+
+### Modes
+
 The device support three modes:
   - `adv`, the device advertises iBeacon messages
   - `scan`, the device scans for iBeacon messages and reports them using MQTT
@@ -77,32 +96,21 @@ To switch modes, sent a control message with the new mode to:
 
 Here `DEVNAME` is either a programmed device name, such as `esp32-1`, or `esp32_XXXX` where the `XXXX` are the last digits of the MAC address. Device names are assigned based on the BLE MAC address in `main/ble_task.c`.
 
+### Other controls
+
 Other control messages are:
 - `who`, can be used for device discovery when sent to the group topic
 - `restart`, to restart the ESP32 (and check for OTA updates)
 - `int N`, to change scan/adv interval to N milliseconds
 - `mode`, to report the current scan/adv mode and interval
 
+The easiest way to run a Mosquitto MQTT client under Microsoft Windows is through the Windows Subsystem for Linux.
+
 Messages can be sent to a specific device, or the whole group:
 ```
-mosquitto_pub -h {BROKER} -u {USERNAME} -P {PASSWORD} -t "blescan/ctrl/esp-1" -m "who"
-mosquitto_pub -h {BROKER} -u {USERNAME} -P {PASSWORD} -t "blescan/ctrl" -m "who"
+mosquitto_pub -t "blescan/ctrl/esp-1" -m "who"
+mosquitto_pub -t "blescan/ctrl" -m "who"
 ```
-
-Both replies to control messages and scan results are reported using MQTT topic `blescan/data/SUBTOPIC/DEVNAME`.
-
-Subtopics are:
-- `scan`, BLE scan results,
-- `mode`, response to `mode` and `int` control messages,
-- `who`, response to `who` control messages,
-- `restart`, response to `restart` control messages,
-- `dbg`, general debug messages
-
-E.g. to listen to all scan results, use:
-```
-mosquitto_sub -h {BROKER} -u {USERNAME} -P {PASSWORD} -t "blescan/data/scan/#" -v
-```
-where `#` is a the MQTT wildcard character.
 
 ## Feedback
 
