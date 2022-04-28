@@ -23,7 +23,7 @@ One of my sons used this as a tool to research the behavior of Bluetooth Low-Ene
 
 The full fledged project installation method is described in the [`FULL_INSTALL.md`](FULL_INSTALL.md). Before you go down that road, you may want to give it a quick spin to see what it can do. The remainder of this README will walk you through this.
 
-The device interfaces using the MQTT protocol.
+The devices interface using the MQTT protocol.
 > MQTT stands for MQ Telemetry Transport. It is a publish/subscribe, extremely simple and lightweight messaging protocol, designed for constrained devices and low-bandwidth, high-latency or unreliable networks. [FAQ](https://mqtt.org/faq)
 
 ## Hardware
