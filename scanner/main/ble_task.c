@@ -398,7 +398,7 @@ ble_task(void * ipc_void) {
                     } else {
 
                         bleMode_t const newBleMode = _bleMode_nr(args[0]);
-                        if (newBleMode >= 0) {
+                        if ((int)newBleMode >= 0) {
                             bleMode = _changeBleMode(bleMode, newBleMode, adv_int_max);
                         }
                     }
