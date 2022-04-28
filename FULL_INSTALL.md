@@ -107,6 +107,12 @@ Subtopics are:
 
 > The easiest way for running the Mosquitto MQTT client under Microsoft Windows is by using Windows Subsystem for Linux.
 
+```bash
+sudo apt-get update.
+sudo apt-get install mosquitto.
+sudo apt-get install mosquitto-clients.
+```
+
 E.g. to listen to all scan results, use:
 ```
 mosquitto_sub -t "blescan/data/scan/#" -v
@@ -126,6 +132,26 @@ To switch modes, sent a control message with the new mode to:
 
 Here `DEVNAME` is either a programmed device name, such as `esp32-1`, or `esp32_XXXX` where the `XXXX` are the last digits of the MAC address. Device names are assigned based on the BLE MAC address in `main/ble_task.c`.
 
+
+| `mosquitto_pub -t "blescan/ctrl" -m SEE_BELOW |   mosquitto_sub -t "blescan/data/#" -v | 
+|----------------|-----------------------|
+| `mode`         | `{ "response": { "mode": "adv", "interval": 40 } }`
+| `scan`         | `{ "response": { "mode": "scan", "interval": 40 } }`
+| `int 100`      | `{ "response": { "mode": "scan", "interval": 100 } }`
+| `adv`          | `{ "response": { "mode": "adv", "interval": 100 } }`
+| `idle`          | `{ "response": { "mode": "adv", "interval": 100 } }`
+
+
+For example
+```
+mosquitto_pub -t "blescan/ctrl" -m "mode"
+```
+replies with
+```
+
+```
+
+
 ### Other controls
 
 Other control messages are:
@@ -134,12 +160,15 @@ Other control messages are:
 - `int N`, to change scan/adv interval to N milliseconds
 - `mode`, to report the current scan/adv mode and interval
 
-The easiest way to run a Mosquitto MQTT client under Microsoft Windows is through the Windows Subsystem for Linux.
-
 Messages can be sent to a specific device, or the whole group:
 ```
 mosquitto_pub -t "blescan/ctrl/esp-1" -m "who"
 mosquitto_pub -t "blescan/ctrl" -m "who"
+```
+
+results in
+```
+blescan/data/who/esp32-1 { "ble": {"name": "esp32-1", "address": "30:ae:a4:cc:24:6a"}, "firmware": { "version": "scanner.75b5b4e-dirty", "date": "Apr 28 2022 10:42:31" }, "wifi": { "connect": 1, "address": "10.1.1.120", "SSID": "Guest Barn", "RSSI": -59 }, "mqtt": { "connect": 1 }, "mem": { "heap": 107832 } }
 ```
 
 ## Feedback

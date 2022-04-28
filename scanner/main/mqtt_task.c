@@ -123,7 +123,7 @@ _mqtt_event_cb(esp_mqtt_event_handle_t event) {
                     free(payload);
 
                 } else {
-                    sendToBle(IPC_TO_BLE_TYP_CTRL, event->data, ipc);
+                    sendToBle(IPC_TO_BLE_TYP_CTRL, event->data, event->data_len, ipc);
                 }
             }
             break;

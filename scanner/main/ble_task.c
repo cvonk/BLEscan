@@ -53,20 +53,32 @@ typedef enum {
 	BLE_EVENT_ADV_STOP_COMPLETE = BIT5
 } bleEvent_t;
 
-typedef enum {  // ESP32 can only do one function at a time (SCAN || ADVERTISE)
-	BLE_MODE_IDLE = 1,
-	BLE_MODE_SCAN,
-	BLE_MODE_ADV
+// ESP32 can only do one function at a time (SCAN || ADVERTISE)
+#define BLEMODE_MAP(XX) \
+  XX(0, IDLE) \
+  XX(1, SCAN) \
+  XX(2, ADV)
+
+typedef enum {
+#define XX(num, name) BLEMODE_##name = num,
+  BLEMODE_MAP(XX)
+#undef XX
 } bleMode_t;
+
+static const char * const _bleModes[] = {
+#define XX(num, name) #name,
+  BLEMODE_MAP(XX)
+#undef XX
+};
 
 extern esp_ble_ibeacon_vendor_t vendor_config;
 
 void
-sendToBle(ipc_to_ble_typ_t const dataType, char const * const data, ipc_t const * const ipc)
+sendToBle(ipc_to_ble_typ_t const dataType, char const * const data, size_t const data_len, ipc_t const * const ipc)
 {
     ipc_to_ble_msg_t msg = {
         .dataType = dataType,
-        .data = strdup(data)
+        .data = strndup(data, data_len)
     };
     assert(msg.data);
     if (xQueueSendToBack(ipc->toBleQ, &msg, 0) != pdPASS) {
@@ -287,36 +299,16 @@ _bleStopAdv(void) {
 	ESP_LOGI(TAG, "STOPPED advertising");
 }
 
-typedef struct modeMap_t {
-    char * str;
-    bleMode_t bleMode;
-} modeMap_t;
-static modeMap_t _modeMaps[] = {
-    { "idle", BLE_MODE_IDLE},
-    { "scan", BLE_MODE_SCAN},
-    { "adv", BLE_MODE_ADV},
-};
-
-static bleMode_t
-_str2bleMode(char const * const str) {
-
-    for (uint ii = 0; ii < ARRAY_SIZE(_modeMaps); ii++) {
-        if (strcmp(str, _modeMaps[ii].str) == 0) {
-            return _modeMaps[ii].bleMode;
-        }
-    }
-    return 0;
+static int
+_bleMode_nr(char const * const bleMode_str)
+{
+    ELEM_POS(_bleModes, bleMode_str);
 }
 
-static char const *
-_bleMode2str(bleMode_t const bleMode) {
-
-    for (uint ii = 0; ii < ARRAY_SIZE(_modeMaps); ii++) {
-        if (bleMode == _modeMaps[ii].bleMode) {
-            return _modeMaps[ii].str;
-        }
-    }
-    return "err";
+const char *
+_bleMode_str(bleMode_t const blemode)
+{
+    return ELEM_AT(_bleModes, blemode, "?");
 }
 
 static uint
@@ -334,25 +326,26 @@ _splitArgs(char * data, char * args[], uint const args_len) {
 }
 
 static bleMode_t
-_changeBleMode(bleMode_t const current, bleMode_t const new, uint16_t const adv_int_max) {
+_changeBleMode(bleMode_t const current, bleMode_t const new, uint16_t const adv_int_max) 
+{
+    ESP_LOGW(TAG, "%s -> %s", _bleMode_str(current), _bleMode_str(new));
 
-    if (new == current) {
-        return new;
-    }
+    if (new != current) {
 
-    switch(new) {
-        case BLE_MODE_IDLE:
-            if (current == BLE_MODE_SCAN) _bleStopScan();
-            if (current == BLE_MODE_ADV) _bleStopAdv();
-            break;
-        case BLE_MODE_SCAN:
-            if (current == BLE_MODE_ADV) _bleStopAdv();
-            _bleStartScan(adv_int_max + 0x04);
-            break;
-        case BLE_MODE_ADV:
-            if (current == BLE_MODE_SCAN) _bleStopScan();
-            _bleStartAdv(adv_int_max);
-            break;
+        switch(new) {
+            case BLEMODE_IDLE:
+                if (current == BLEMODE_SCAN) _bleStopScan();
+                if (current == BLEMODE_ADV) _bleStopAdv();
+                break;
+            case BLEMODE_SCAN:
+                if (current == BLEMODE_ADV) _bleStopAdv();
+                _bleStartScan(adv_int_max + 0x04);
+                break;
+            case BLEMODE_ADV:
+                if (current == BLEMODE_SCAN) _bleStopScan();
+                _bleStartAdv(adv_int_max);
+                break;
+        }
     }
     return new;
 }
@@ -378,7 +371,7 @@ ble_task(void * ipc_void) {
 	ble_event_group = xEventGroupCreate();  // for event handler to signal completion
 
     uint16_t adv_int_max = (40 << 4) / 10;  // 40 msec  [n * 0.625 msec]
-    bleMode_t bleMode = _changeBleMode(BLE_MODE_IDLE, BLE_MODE_ADV, adv_int_max);
+    bleMode_t bleMode = _changeBleMode(BLEMODE_IDLE, BLEMODE_ADV, adv_int_max);
 
 	while (1) {
 		ipc_to_ble_msg_t msg;
@@ -399,26 +392,26 @@ ble_task(void * ipc_void) {
                             adv_int_max = (msec << 4) / 10;
 
                             bleMode_t const orgBleMode = bleMode;  // args[1] in msec
-                            bleMode = _changeBleMode(bleMode, BLE_MODE_IDLE, adv_int_max);
+                            bleMode = _changeBleMode(bleMode, BLEMODE_IDLE, adv_int_max);
                             bleMode = _changeBleMode(bleMode, orgBleMode, adv_int_max);
                         }
                     } else {
 
-                        bleMode_t const newBleMode = _str2bleMode(args[0]);
-                        if (newBleMode) {
+                        bleMode_t const newBleMode = _bleMode_nr(args[0]);
+                        if (newBleMode >= 0) {
                             bleMode = _changeBleMode(bleMode, newBleMode, adv_int_max);
                         }
                     }
                     char * payload;
                     assert(asprintf(&payload,
                                     "{ \"response\": { \"mode\": \"%s\", \"interval\": %u } }",
-                                    _bleMode2str(bleMode), (adv_int_max * 10) >> 4 ));
+                                    _bleMode_str(bleMode), (adv_int_max * 10) >> 4 ));
                     sendToMqtt(IPC_TO_MQTT_MSGTYPE_MODE, payload, _ipc);
                     free(payload);
-                    free(msg.data);
                     break;
                 }
             }
+            free(msg.data);
 		}
 	}
 }

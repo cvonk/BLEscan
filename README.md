@@ -77,6 +77,12 @@ Subtopics are:
 
 > The easiest way for running the Mosquitto MQTT client under Microsoft Windows is by using Windows Subsystem for Linux.
 
+```bash
+sudo apt-get update.
+sudo apt-get install mosquitto.
+sudo apt-get install mosquitto-clients.
+```
+
 E.g. to listen to all scan results, use:
 ```
 mosquitto_sub -t "blescan/data/scan/#" -v

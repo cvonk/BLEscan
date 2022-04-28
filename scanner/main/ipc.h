@@ -12,6 +12,20 @@
 #ifndef MAX
 #define MAX(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
 #endif
+#ifndef ELEM_AT
+# define ELEM_AT(a, i, v) ((uint) (i) < ARRAY_SIZE(a) ? (a)[(i)] : (v))
+#endif
+#ifndef ELEM_POS
+# define ELEM_POS(a, s) \
+    do { \
+      for (uint_least8_t ii = 0; ii < ARRAY_SIZE(a); ii++) { \
+	    if (strcasecmp(s, a[ii]) == 0) { \
+	      return ii; \
+	    } \
+      } \
+      return -1; \
+    } while(0)
+#endif
 
 #define BLE_DEVNAME_LEN (32)
 #define BLE_DEVMAC_LEN (6 * 3)
@@ -60,5 +74,5 @@ typedef struct ipc_to_ble_msg_t {
     char *            data;  // must be freed by recipient
 } ipc_to_ble_msg_t;
 
-void sendToBle(ipc_to_ble_typ_t const dataType, char const * const data, ipc_t const * const ipc);
+void sendToBle(ipc_to_ble_typ_t const dataType, char const * const data, size_t const data_len, ipc_t const * const ipc);
 void sendToMqtt(ipc_to_mqtt_typ_t const dataType, char const * const data, ipc_t const * const ipc);
