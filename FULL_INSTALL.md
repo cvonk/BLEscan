@@ -95,7 +95,7 @@ Using an Android phone (we reuse the OPNpool app):
 
 [^2]: Precise location permission is needed to find and connect to the OPNpool device using Bluetooth LE.
 
-## Using the application
+## Using the devices
 
 Both replies to control messages and scan results are reported using MQTT topic `blescan/data/SUBTOPIC/DEVNAME`.
 
@@ -157,7 +157,28 @@ mosquitto_pub -t "blescan/ctrl/esp-1" -m "who"
 mosquitto_pub -t "blescan/ctrl" -m "who"
 ```
 
-### Example
+In one terminal listen for the reponses from all devices
+
+```bash
+mosquitto_sub -t "blescan/data/#" -v
+```
+
+In another terminal sent the command to all devices
+
+```
+mosquitto_pub -t "blescan/ctrl" -m who
+```
+
+The first terminal will show the scan results
+```
+blescan/data/who/esp32-1 { "ble": {"name": "esp32-1", "address": "30:ae:a4:cc:24:6a"}, "firmware": { "version": "scanner.v1.0", "date": "Apr 28 2022 16:20:28" }, "wifi": { "connect": 1, "address": "10.1.1.120", "SSID": "Guest Barn", "RSSI": -51 }, "mqtt": { "connect": 1 }, "mem": { "heap": 115692 } }
+blescan/data/who/esp32-4 { "ble": {"name": "esp32-4", "address": "ac:67:b2:53:7f:22"}, "firmware": { "version": "scanner.v1.0", "date": "Apr 28 2022 16:20:28" }, "wifi": { "connect": 1, "address": "10.1.1.123", "SSID": "Guest Barn", "RSSI": -66 }, "mqtt": { "connect": 1 }, "mem": { "heap": 115636 } }
+blescan/data/who/esp32-3 { "ble": {"name": "esp32-3", "address": "ac:67:b2:53:82:8a"}, "firmware": { "version": "scanner.v1.0", "date": "Apr 28 2022 16:20:28" }, "wifi": { "connect": 1, "address": "10.1.1.122", "SSID": "Guest Barn", "RSSI": -58 }, "mqtt": { "connect": 1 }, "mem": { "heap": 115636 } }
+blescan/data/who/esp32-2 { "ble": {"name": "esp32-2", "address": "30:ae:a4:cc:32:4e"}, "firmware": { "version": "scanner.v1.0", "date": "Apr 28 2022 16:20:28" }, "wifi": { "connect": 1, "address": "10.1.1.121", "SSID": "Guest Barn", "RSSI": -65 }, "mqtt": { "connect": 1 }, "mem": { "heap": 115716 } }
+```
+
+
+### Scan example
 
 In one terminal listen for the reponses
 
