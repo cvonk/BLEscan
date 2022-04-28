@@ -1,0 +1,47 @@
+# erase sdkconfig after changing this file, so it gets rebuild
+menu "BLE Scan/Adv App"
+
+    config WIFI_CONNECT_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            SSID (network name). Leave empty for BLE provisioning.
+
+    config WIFI_CONNECT_PASSWD
+        string "WiFi Password"
+        default ""
+        help
+            WiFi password (WPA or WPA2). Leave empty for BLE provisioning.
+
+    config BLESCAN_MQTT_DATA_TOPIC
+        string "MQTT broker uri"
+        default "blescan/data"
+        help
+            MQTT topic for iBeacons received over BLE
+
+    config BLESCAN_MQTT_CTRL_TOPIC
+        string "MQTT broker uri"
+        default "blescan/ctrl"
+        help
+            MQTT topic for control messages
+
+    config BLESCAN_MQTT_URL
+        string "MQTT broker uri"
+        default "mqtt://username:passwd@mqtt.vonk:1883"
+        help
+            URL of the MQTT broker.  For authentication include the username
+            and password.
+
+    config OTA_UPDATE_FIRMWARE_URL
+        string "Firmware upgrade url endpoint"
+        default "http://host:port/directory/ota_update_test.bin"
+        help
+            URL of server which hosts the firmware image.
+
+    config OTA_UPDATE_RECV_TIMEOUT
+        int "OTA Update receive Timeout"
+        default 5000
+        help
+            Maximum time for reception [sec]
+
+endmenu
