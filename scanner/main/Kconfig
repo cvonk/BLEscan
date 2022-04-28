@@ -3,7 +3,7 @@ menu "BLEscan"
 
     config OTA_UPDATE_FIRMWARE_URL
         string "Firmware upgrade url endpoint"
-        default "http://host.domain/path/to/scanner.bin"
+        default "http://coertvonk.com/cvonk/blescan/scanner.bin"
         help
             URL of server which hosts the firmware image. (make sure it matches Kconfig in factory dir)
 
@@ -17,7 +17,7 @@ menu "BLEscan"
         string "MQTT broker uri"
         default "blescan/data"
         help
-            MQTT topic for iBeacons received over BLE
+            MQTT data topic for iBeacons received over BLE
 
     config BLESCAN_MQTT_CTRL_TOPIC
         string "MQTT broker uri"

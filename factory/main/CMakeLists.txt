@@ -1,3 +1,9 @@
-set(COMPONENT_SRCS main.c)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-register_component()
+idf_component_register(SRCS 
+                           main.c
+                       INCLUDE_DIRS
+                            "."
+                            "../components/factory_ble_prov/include"
+                            "../../scanner/components/factory_reset_task/include"
+                            "../../scanner/components/ota_update_task/include"
+                            "../../scanner/components/wifi_connect/include"
+)

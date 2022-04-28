@@ -1,8 +1,22 @@
 /**
  * @brief BLE iBeacon advertisement or scanning
- **/
-// Copyright © 2020, Johan and Coert Vonk
-// SPDX-License-Identifier: MIT
+ * 
+ * This file is part of BLEscan.
+ * 
+ * BLEscan is free software: you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software Foundation, either
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * BLEscan is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with BLEscan. 
+ * If not, see <https://www.gnu.org/licenses/>.
+ * 
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-FileCopyrightText: 2020-2022, Johan and Coert Vonk
+ */
 
 #include <sdkconfig.h>
 #include <stdlib.h>
@@ -21,15 +35,10 @@
 #include <freertos/event_groups.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
-#include <esp_ibeacon_api.h>
 
-#include "ipc_msgs.h"
+#include "esp_ibeacon_api.h"
+#include "ipc.h"
 #include "ble_task.h"
-
-#define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
-#define ALIGN( type ) __attribute__((aligned( __alignof__( type ) )))
-#define PACK( type )  __attribute__((aligned( __alignof__( type ) ), packed ))
-#define PACK8  __attribute__((aligned( __alignof__( uint8_t ) ), packed ))
 
 static char const * const TAG = "ble_task";
 static ipc_t * _ipc = NULL;
@@ -53,9 +62,9 @@ typedef enum {  // ESP32 can only do one function at a time (SCAN || ADVERTISE)
 extern esp_ble_ibeacon_vendor_t vendor_config;
 
 void
-sendToBle(toBleMsgType_t const dataType, char const * const data, ipc_t const * const ipc)
+sendToBle(ipc_to_ble_typ_t const dataType, char const * const data, ipc_t const * const ipc)
 {
-    toBleMsg_t msg = {
+    ipc_to_ble_msg_t msg = {
         .dataType = dataType,
         .data = strdup(data)
     };
@@ -108,7 +117,7 @@ _bda2devName(uint8_t const * const bda, char * const name, size_t name_len) {
         { {0x30, 0xae, 0xa4, 0xcc, 0x45, 0x06}, "esp32-wrover-1" },
         { {0x30, 0xae, 0xa4, 0xcc, 0x42, 0x7a}, "esp32-wrover-2" }
 	};
-	for (uint ii=0; ii < ARRAYSIZE(knownBrds); ii++) {
+	for (uint ii=0; ii < ARRAY_SIZE(knownBrds); ii++) {
 		if (memcmp(bda, knownBrds[ii].bda, ESP_BD_ADDR_LEN) == 0) {
 			strncpy(name, knownBrds[ii].name, name_len);
 			return;
@@ -184,7 +193,7 @@ _bleGapHandler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t * param) {
                 len += sprintf(payload + len, ", \"txPwr\": %d", ibeacon_data->ibeacon_vendor.measured_power);
                 len += sprintf(payload + len, ", \"RSSI\": %d }", scan_result->scan_rst.rssi);
 
-                sendToMqtt(TO_MQTT_MSGTYPE_SCAN, payload, _ipc);
+                sendToMqtt(IPC_TO_MQTT_MSGTYPE_SCAN, payload, _ipc);
             }
         }
         default:
@@ -256,8 +265,10 @@ _bleStartAdv(uint16_t const adv_int_max) {
             .channel_map = ADV_CHNL_ALL,
             .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
         };
+
         ble_adv_params.adv_int_min = adv_int_max >> 1; // minimum advertisement interval [n * 0.625 msec]
-        ble_adv_params.adv_int_max = adv_int_max;     // maximim advertisement interval [n * 0.625 msec]
+        ble_adv_params.adv_int_max = adv_int_max;      // maximim advertisement interval [n * 0.625 msec]
+        ESP_LOGI(TAG, "%s adv_int: 0x%04X .. 0x%04X", __FUNCTION__, ble_adv_params.adv_int_min, ble_adv_params.adv_int_max);
 
         ESP_ERROR_CHECK(esp_ble_gap_start_advertising(&ble_adv_params));
     }
@@ -289,7 +300,7 @@ static modeMap_t _modeMaps[] = {
 static bleMode_t
 _str2bleMode(char const * const str) {
 
-    for (uint ii = 0; ii < ARRAYSIZE(_modeMaps); ii++) {
+    for (uint ii = 0; ii < ARRAY_SIZE(_modeMaps); ii++) {
         if (strcmp(str, _modeMaps[ii].str) == 0) {
             return _modeMaps[ii].bleMode;
         }
@@ -300,7 +311,7 @@ _str2bleMode(char const * const str) {
 static char const *
 _bleMode2str(bleMode_t const bleMode) {
 
-    for (uint ii = 0; ii < ARRAYSIZE(_modeMaps); ii++) {
+    for (uint ii = 0; ii < ARRAY_SIZE(_modeMaps); ii++) {
         if (bleMode == _modeMaps[ii].bleMode) {
             return _modeMaps[ii].str;
         }
@@ -328,6 +339,7 @@ _changeBleMode(bleMode_t const current, bleMode_t const new, uint16_t const adv_
     if (new == current) {
         return new;
     }
+
     switch(new) {
         case BLE_MODE_IDLE:
             if (current == BLE_MODE_SCAN) _bleStopScan();
@@ -361,44 +373,52 @@ ble_task(void * ipc_void) {
     _bda2str(bda, _ipc->dev.bda);
 	_bda2devName(bda, _ipc->dev.name, BLE_DEVNAME_LEN);
 
-    sendToMqtt(TO_MQTT_IPC_DEV_AVAILABLE, _ipc->dev.name, _ipc);
+    sendToMqtt(IPC_TO_MQTT_IPC_DEV_AVAILABLE, _ipc->dev.name, _ipc);
 
 	ble_event_group = xEventGroupCreate();  // for event handler to signal completion
 
-    uint16_t adv_int_max = (30 << 4) / 10;  // 30 msec  [n * 0.625 msec]
+    uint16_t adv_int_max = (40 << 4) / 10;  // 40 msec  [n * 0.625 msec]
     bleMode_t bleMode = _changeBleMode(BLE_MODE_IDLE, BLE_MODE_ADV, adv_int_max);
 
 	while (1) {
-
-		toBleMsg_t msg;
+		ipc_to_ble_msg_t msg;
 		if (xQueueReceive(_ipc->toBleQ, &msg, (TickType_t)(1000L / portTICK_PERIOD_MS)) == pdPASS) {
-            assert(msg.dataType == TO_BLE_MSGTYPE_CTRL);
 
-            char * args[3];
-            uint8_t argc = _splitArgs(msg.data, args, ARRAYSIZE(args));
+            switch(msg.dataType) {
 
-            if (strcmp(args[0], "int") == 0 ) {
-                if (argc >= 2) {
-                    adv_int_max = (atoi(args[1]) << 4) / 10;
+                case IPC_TO_BLE_TYP_CTRL: {
 
-                    bleMode_t const orgBleMode = bleMode;  // args[1] in msec
-                    bleMode = _changeBleMode(bleMode, BLE_MODE_IDLE, adv_int_max);
-                    bleMode = _changeBleMode(bleMode, orgBleMode, adv_int_max);
-                }
-            } else {
+                    char * args[3];
+                    uint8_t argc = _splitArgs(msg.data, args, ARRAY_SIZE(args));
 
-                bleMode_t const newBleMode = _str2bleMode(args[0]);
-                if (newBleMode) {
-                    bleMode = _changeBleMode(bleMode, newBleMode, adv_int_max);
+                    if (strcmp(args[0], "int") == 0 ) {
+                        if (argc >= 2) {
+                            uint16_t const msec_min = 40;  // 20 msec * 2, because use adv_int_max/2
+                            uint16_t const msec_max = 10240;
+                            uint16_t const msec = MAX( MIN(atoi(args[1]), msec_max), msec_min);  // limits imposed by ESP-IDF
+                            adv_int_max = (msec << 4) / 10;
+
+                            bleMode_t const orgBleMode = bleMode;  // args[1] in msec
+                            bleMode = _changeBleMode(bleMode, BLE_MODE_IDLE, adv_int_max);
+                            bleMode = _changeBleMode(bleMode, orgBleMode, adv_int_max);
+                        }
+                    } else {
+
+                        bleMode_t const newBleMode = _str2bleMode(args[0]);
+                        if (newBleMode) {
+                            bleMode = _changeBleMode(bleMode, newBleMode, adv_int_max);
+                        }
+                    }
+                    char * payload;
+                    assert(asprintf(&payload,
+                                    "{ \"response\": { \"mode\": \"%s\", \"interval\": %u } }",
+                                    _bleMode2str(bleMode), (adv_int_max * 10) >> 4 ));
+                    sendToMqtt(IPC_TO_MQTT_MSGTYPE_MODE, payload, _ipc);
+                    free(payload);
+                    free(msg.data);
+                    break;
                 }
             }
-            char * payload;
-            assert(asprintf(&payload,
-                            "{ \"response\": { \"mode\": \"%s\", \"interval\": %u } }",
-                            _bleMode2str(bleMode), (adv_int_max * 10) >> 4 ));
-            sendToMqtt(TO_MQTT_MSGTYPE_MODE, payload, _ipc);
-            free(payload);
-			free(msg.data);
 		}
 	}
 }

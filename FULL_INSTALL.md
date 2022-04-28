@@ -1,4 +1,4 @@
-# ESP32 BLE iBeacon scanner and advertizer (ctrl/data over MQTT)
+# Full Install
 
 [![GitHub Discussions](https://img.shields.io/github/discussions/cvonk/BLEscan)](https://github.com/cvonk/BLEscan/discussions)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/cvonk/BLEscan)
@@ -16,15 +16,10 @@ My son used this as a tool to research the behavior of Bluetooth Low-Energy (BLE
   - [x] Supports both BLE advertiser and scan modes
   - [x] Advertize interval is configurable
   - [x] Controlled and data presented through MQTT
-  - [x] Supports over-the-air updates [^1]
-  - [x] Easily one-time provisioning from an Android phone [^1]
+  - [x] Supports over-the-air updates
+  - [x] Easily one-time provisioning from an Android phone
 
-[^1]: Available with the full install as described in [`FULL_INSTALL.md`](FULL_INSTALL.md)
-
-The full fledged project installation method is described in the [`FULL_INSTALL.md`](FULL_INSTALL.md). Before you go down that road, you may want to give it a quick spin to see what it can do. The remainder of this README will walk you through this.
-
-The device interfaces using the MQTT protocol.
-> MQTT stands for MQ Telemetry Transport. It is a publish/subscribe, extremely simple and lightweight messaging protocol, designed for constrained devices and low-bandwidth, high-latency or unreliable networks. [FAQ](https://mqtt.org/faq)
+We consider over-the-air updates essential, because in our test setup we had about 20 devices. This way we don't have to flashing each of them by hand each time there is an software update. 
 
 ## Hardware
 
@@ -43,27 +38,62 @@ No soldering required.
 ## Software
 
 Clone the repository and its submodules to a local directory. The `--recursive` flag automatically initializes and updates the submodules in the repository,.
-```
+
+```bash
 git clone --recursive https://github.com/cvonk/BLEscan
 cd BLEscan
 cp scanner/Kconfig.example scanner/Kconfig
 cp factory/Kconfig.example factory/Kconfig
 ```
 
-### System Development Kit (SDK)
+### ESP-IDF 
 
 If you haven't installed ESP-IDF, I recommend the Microsoft Visual Studio Code IDE (vscode). From vscode, add the [Microsoft's C/C++ extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools). Then add the [Espressif IDF extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension) and follow its configuration to install ESP-IDF 4.4.
 
-### ESP32 Device
+### Boot process
 
-In `menuconfig`, scroll down to BLEscan and select "Use hardcoded Wi-Fi credentials" and specify the SSID and password of your Wi-Fi access point. Then select "Use hardcoded MQTT URL" and specify the URL to the MQTT broker in the form `mqtt://mqtt:passwd@host.domain:1883`.
+As usual, the `bootloader` image does some minimum initializations. If it finds a valid `ota` image, it passes control over to that image. If not, it starts the `factory` image.
+
+  - The `factory` image takes care of provisioning Wi-Fi and MQTT credentials with the help of a phone app. These credentials are stored in the `nvs` partition. It then downloads the `ota` image, and restarts the device.
+  - We refer to the `ota` image as the `scanner`, as it provides the core of the functionality of the OPNpool device.
+
+To host your `scanner` image, you will need to place it on your LAN or on the Web. Specify the "Firmware upgrade url endpoint" using menuconfig.
 
 ```bash
-cd scanner
+cd BLEscan/scanner
 idf.py set-target esp32
 idf.py menuconfig
 idf.py flash
+scp build/scanner.bin host.domain:~/path/to/scanner.bin
 ```
+
+We will build the `factory` image and provision it using an Android phone app.
+
+> If you have an iPhone, or you have problems running the Android app, you can extend `esp_prov.py` to include `mqtt_url` similar to what is shown [here](https://github.com/espressif/esp-idf-provisioning-android/issues/11#issuecomment-586973381). Sorry, I don't have the iOS development environment.
+
+Specify the same "Firmware upgrade url endpoint" using menuconfig.
+
+```bash
+cd BLEscan/factory
+idf.py set-target esp32
+idf.py menuconfig
+idf.py flash
+idf.py monitor
+```
+
+In the last step of provisioning, this `factory` image will download the `scanner` image from your site.
+
+Using an Android phone (we reuse the OPNpool app):
+
+  * Install and run the OPNpool app from the [Play Store](https://play.google.com/store/apps/details?id=com.coertvonk.opnpool).
+  * Using the overflow menu, select "Provision device".
+  * Click on the "Provision" button and grant it access [^2].
+  * Click on the name of the BLEscan device one it is detected (`POOL*`).
+  * Select the Wi-Fi SSID to connect to and give it the password.
+  * Specify the MQTT broker URL in the format `mqtt://username:passwd@host.domain:1883`.
+  * Wait a few minutes for the provisioning to complete.
+
+[^2]: Precise location permission is needed to find and connect to the OPNpool device using Bluetooth LE.
 
 ## Using the application
 
