@@ -1,4 +1,4 @@
-# ESP32 BLE iBeacon scanner and advertizer (ctrl/data over MQTT)
+# BLE iBeacon scanner and advertizer
 
 [![GitHub Discussions](https://img.shields.io/github/discussions/cvonk/BLEscan)](https://github.com/cvonk/BLEscan/discussions)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/cvonk/BLEscan)
@@ -7,7 +7,7 @@
 
 This program runs on an Espressif EPS32 microcontroller and advertizes or scan for iBeacons.
 
-My son used this as a tool to research the behavior of Bluetooth Low-Energy (BLE) signals in relation to contact tracing for MIT PACT.
+One of my sons used this as a tool to research the behavior of Bluetooth Low-Energy (BLE) signals in relation to contact tracing for MIT PACT.
 
 ![ESP32 statues scattered around the yard](media/photo.jpg)
 
