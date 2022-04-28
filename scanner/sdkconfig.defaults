@@ -15,3 +15,6 @@ CONFIG_ESP32_CORE_DUMP_STACK_SIZE=1024
 
 # enable BLE
 CONFIG_BT_ENABLED=y
+
+# optimize for size (didn't fit in OTA otherwise)
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
