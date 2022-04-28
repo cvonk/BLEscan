@@ -11,6 +11,8 @@ One of my sons used this as a tool to research the behavior of Bluetooth Low-Ene
 
 ![ESP32 statues scattered around the yard](media/photo.jpg)
 
+Our test setup had about 20 devices. To make this project scale, we used over-the-air updates and MQTT for the control and data channels.
+
 ## Features:
 
   - [x] Supports both BLE advertiser and scan modes
@@ -18,8 +20,6 @@ One of my sons used this as a tool to research the behavior of Bluetooth Low-Ene
   - [x] Controlled and data presented through MQTT
   - [x] Supports over-the-air updates
   - [x] Easily one-time provisioning from an Android phone
-
-We consider over-the-air updates essential, because in our test setup we had about 20 devices. This way we don't have to flashing each of them by hand each time there is an software update. 
 
 ## Hardware
 
@@ -31,9 +31,8 @@ No soldering required.
 
 | Name          | Description                                                       | Sugggested mfr/part#       |
 |---------------|-------------------------------------------------------------------|----------------------------|
-| ESP32MOD      | ESP32 development board,                                          | [ESP32-DevKitC-VB](https://www.espressif.com/en/products/devkits/esp32-devkitc/overview)
-| POWER         | 5 Volt, micro USB power adapter                                   |
-| BROKER        | Device to run MQTT Broker such as [Mosquitto](https://mosquitto.org/) | Raspberry Pi 3
+| ESP32BRD      | ESP32 development board                                          | [ESP32-DevKitC-VB](https://www.espressif.com/en/products/devkits/esp32-devkitc/overview)
+| BROKER        | Device to run MQTT Broker such as [Mosquitto](https://mosquitto.org/) | [Raspberry Pi 4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
 
 ## Software
 

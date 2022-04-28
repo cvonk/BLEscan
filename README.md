@@ -36,9 +36,8 @@ No soldering required.
 
 | Name          | Description                                                       | Sugggested mfr/part#       |
 |---------------|-------------------------------------------------------------------|----------------------------|
-| ESP32MOD      | ESP32 development board,                                          | [ESP32-DevKitC-VB](https://www.espressif.com/en/products/devkits/esp32-devkitc/overview)
-| POWER         | 5 Volt, micro USB power adapter                                   |
-| BROKER        | Device to run MQTT Broker such as [Mosquitto](https://mosquitto.org/) | Raspberry Pi 3
+| ESP32BRD      | ESP32 development board                                          | [ESP32-DevKitC-VB](https://www.espressif.com/en/products/devkits/esp32-devkitc/overview)
+| BROKER        | Device to run MQTT Broker such as [Mosquitto](https://mosquitto.org/) | [Raspberry Pi 4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
 
 ## Software
 
